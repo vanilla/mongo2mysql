@@ -1,0 +1,30 @@
+{
+  "name": "vanilla/mongo2mysql",
+  "description": "Imports a mongodb database to mysql.",
+  "minimum-stability": "dev",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Todd Burry",
+      "email": "todd@vanillaforums.com"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "git@github.com:vanilla/garden.git"
+    }
+  ],
+  "require": {
+    "vanilla/garden": "*",
+    "vanilla/garden-cli": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "MongoToMysql\\": "src"
+    }
+  },
+  "bin": [
+    "bin/mongo2mysql"
+  ]
+}
