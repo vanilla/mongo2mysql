@@ -10,6 +10,7 @@ ini_set('track_errors', 1);
 date_default_timezone_set('America/Montreal');
 
 require_once __DIR__.'/../vendor/autoload.php';
+Garden\Event::fire('bootstrap');
 
 $cli = new Cli();
 
@@ -30,7 +31,7 @@ $porter->setLimit($args->getOpt('limit', 0));
 
 try {
     $porter->run();
-} catch (\Exeption $ex) {
+} catch (\Exception $ex) {
     echo $cli->red($ex->getMessage());
     return $ex->getCode();
 }

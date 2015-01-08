@@ -81,7 +81,7 @@ class Porter {
         foreach ($row as $name => $value) {
             if (!array_key_exists($name, $tableDef['columns'])) {
                 $tableDef['columns'][$name] = [
-                    'type' => $this->guessDbType($value),
+                    'type' => $this->guessDbType($value, $name, $row),
                     'required' => false,
                 ];
                 $set = true;
@@ -116,37 +116,64 @@ class Porter {
      */
     public function exportCollection(MongoCollection $c) {
         $tableName = $c->getName();
-        echo static::ts()." Exporting collection $tableName...";
+        echo static::ts()." Exporting collection $tableName:\n";
+        $startTime = microtime(true);
 
+        $total = $c->count();
         $data = $c->find();
         if ($this->getLimit()) {
             $data->limit($this->getLimit());
+            $total = min($this->getLimit(), $total);
         }
 
-        $count = 0;
-        foreach ($data as $row) {
-            $exportTableName = $this->getImportTablename($row, $tableName);
+        try {
+            $count = 0;
+            $lastPercent = 0;
+            foreach ($data as $row) {
+                $exportTableName = $this->getImportTablename($row, $tableName);
 
-            $row2 = $this->flattenArray($row);
+                $row2 = $this->flattenArray($row);
 
-            // Check for array columns.
-            if (isset($row2['_arr'])) {
-                $arrays = $row2['_arr'];
-                unset($row2['_arr']);
-                foreach ($arrays as $akey => $arr) {
-                    $this->exportCollectionArray($exportTableName, $row2['_id'], $akey, $arr);
+                // Check for array columns.
+                if (isset($row2['_arr'])) {
+                    $arrays = $row2['_arr'];
+                    unset($row2['_arr']);
+                    foreach ($arrays as $akey => $arr) {
+                        $this->exportCollectionArray($exportTableName, $row2['_id'], $akey, $arr);
+                    }
+                }
+
+                if (count($row2) > 500) {
+                    echo "  Skipping _id {$row2['_id']}, too many columns. (".count($row2).")\n";
+                    continue;
+                }
+
+                $this->ensureRowStructure($row2, $exportTableName);
+                $this->getDb()->insert($exportTableName, $row2, [Db::OPTION_REPLACE => true]);
+
+                $count++;
+
+//                $p = $count / $total;
+                $percent = $count / ($total !== 0 ? $total : 1);
+                $elapsed = microtime(true) - $startTime;
+                $estimate = $elapsed / $percent;
+                $left = format_timespan($estimate - $elapsed);
+
+                $percent10 = floor($percent * 10) * 10;
+                if ($percent10 > $lastPercent) {
+                    $estimate = format_timespan($estimate);
+                    echo "  $percent10% ($count/$total, $left left)\n";
+                    $lastPercent = $percent10;
                 }
             }
-
-            $this->ensureRowStructure($row2, $exportTableName);
-            $this->getDb()->insert($exportTableName, $row2, [Db::OPTION_REPLACE => true]);
-
-            if ($count % 1000 === 0) {
-                echo '.';
-            }
-            $count++;
+            $finishTime = microtime(true);
+            $elapsed = format_timespan($finishTime - $startTime);
+            echo "  Done. ($count rows in $elapsed)\n";
+        } catch (\Exception $ex) {
+            throw $ex;
         }
-        echo "done.\n";
+
+
     }
 
     /**
@@ -184,12 +211,18 @@ class Porter {
         $result = [];
         foreach ($arr as $k => $v) {
             if (is_array($v)) {
-                if (isset($v[0])) {
-                    // Numeric arrays get stored in child tables.
+                if (isset($v[0]) || count($v) > 25) {
+                    // Numeric and long arrays get stored in child tables.
                     $result['_arr'][$path.$k] = $v;
+                    if ($k !== 'members') {
+                        $foo = 'bar';
+                    }
                 } else {
                     $result = array_merge($result, $this->flattenArray($v, $path.$k.'_'));
                 }
+            } elseif ($v instanceof \MongoDate) {
+                $dt = gmdate('c', $v->sec);
+                $result[$path.$k] = $dt;
             } else {
                 $result[$path.$k] = $v;
             }
@@ -233,10 +266,12 @@ class Porter {
      * @return string
      * @throws \Exception
      */
-    public function guessDbType($value) {
+    public function guessDbType($value, $name = '', $row = []) {
         if ($value instanceof \MongoId) {
             return 'varchar(24)';
-        } elseif (is_int($value)) {
+        } elseif ($value instanceof \MongoDate || $value instanceof \DateTime) {
+            return 'datetime';
+        } elseif (is_int($value) || is_null($value)) {
             return 'int';
         } elseif (is_double($value)) {
             return 'double';
@@ -245,7 +280,7 @@ class Porter {
 
             if ($strlen > $this->maxVarcharLength) {
                 return 'text';
-            } elseif (preg_match('`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,4})?Z$`', $value)) {
+            } elseif (preg_match('`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,4})?`', $value)) {
                 return 'datetime';
             } else {
                 if ($strlen < 50) {
@@ -258,7 +293,12 @@ class Porter {
                 return "varchar($strlen)";
             }
         } else {
-            throw new \Exception("Unknown type for: ".json_encode($value));
+            if ($name && $row) {
+                $for = $name.' in '.json_encode($row);
+            } else {
+                $for = json_encode($value);
+            }
+            throw new \Exception("Unknown type for: ".$for);
         }
     }
 
