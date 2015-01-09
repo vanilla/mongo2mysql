@@ -21,8 +21,18 @@ You are going to need php, composer, mysql, mongoDB, and the php-mongo extension
 1. Clone this repository locally.
 2. Run `composer install` to bring in dependencies.
 3. Symlink `bin/mongo2mysql` into a directory in your path. Protip: Make yourself a `~/bin` directory for all your little
-commandline tools.
+command line tools.
 4. Run `mongo2mysql --help` to see what to do next.
+
+## Restoring a MongoDB
+
+Generally, you'll need to restore a mongoDB database to the same computer as your mysql database.
+To do this you can use the [mongorestore](//docs.mongodb.org/manual/tutorial/backup-with-mongodump/#restore-a-database-with-mongorestore) command line utility.
+
+1. Unzip the bson files in the backup.
+2. The directory of the bson files will become the name of the mongoDB so rename it if you want to.
+3. Call `mongorestore dirname/` to restore the files.
+
 
 ## Limitations
 
