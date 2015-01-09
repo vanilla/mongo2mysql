@@ -129,6 +129,7 @@ class Porter {
         try {
             $count = 0;
             $lastPercent = 0;
+            $lastTime = $startTime;
             foreach ($data as $row) {
                 $exportTableName = $this->getImportTablename($row, $tableName);
 
@@ -145,25 +146,29 @@ class Porter {
 
                 if (count($row2) > 500) {
                     echo "  Skipping _id {$row2['_id']}, too many columns. (".count($row2).")\n";
+                    $count++;
                     continue;
                 }
 
                 $this->ensureRowStructure($row2, $exportTableName);
                 $this->getDb()->insert($exportTableName, $row2, [Db::OPTION_REPLACE => true]);
 
-                $count++;
 
 //                $p = $count / $total;
+                $count++;
                 $percent = $count / ($total !== 0 ? $total : 1);
-                $elapsed = microtime(true) - $startTime;
+                $now = microtime(true);
+                $elapsed = $now - $startTime;
                 $estimate = $elapsed / $percent;
                 $left = format_timespan($estimate - $elapsed);
 
-                $percent10 = floor($percent * 10) * 10;
-                if ($percent10 > $lastPercent) {
-                    $estimate = format_timespan($estimate);
-                    echo "  $percent10% ($count/$total, $left left)\n";
-                    $lastPercent = $percent10;
+                $percent = round($percent * 100);
+
+//                $estimate = format_timespan($estimate);
+                if ($percent > $lastPercent && $now - $lastTime >= 10) {
+                    echo "  $percent% ($count/$total, $left left)\n";
+                    $lastPercent = $percent;
+                    $lastTime = $now;
                 }
             }
             $finishTime = microtime(true);
