@@ -4,7 +4,7 @@
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "a8b9e99cb6692d289ac218db37e96b1e",
+    "hash": "43aa50858cdb1eb24d6534f3b69df221",
     "packages": [
         {
             "name": "vanilla/garden",
@@ -119,6 +119,9 @@
     "minimum-stability": "dev",
     "stability-flags": [],
     "prefer-stable": false,
-    "platform": [],
+    "prefer-lowest": false,
+    "platform": {
+        "ext-mongo": "*"
+    },
     "platform-dev": []
 }

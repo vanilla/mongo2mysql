@@ -17,7 +17,8 @@
   ],
   "require": {
     "vanilla/garden": "*",
-    "vanilla/garden-cli": "*"
+    "vanilla/garden-cli": "*",
+    "ext-mongo": "*"
   },
   "autoload": {
     "psr-4": {
