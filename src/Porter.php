@@ -250,6 +250,8 @@ class Porter {
                 $key = 'group_members';
             } elseif (preg_match('`^group:[^:]*$`', $key, $m)) {
                 $key = 'group';
+            } elseif (preg_match('`^ip:.*:uid$`', $key, $m)) {
+                $key = 'ip_uid';
             }
 
             list($first) = explode(':', $key);
