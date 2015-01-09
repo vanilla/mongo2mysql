@@ -258,6 +258,7 @@ class Porter {
             }
 
             $key = preg_replace('`\d+`', '#', $key);
+            $key = str_replace([':NaN:', ':undefined:'], ':#:', $key);
             $key = preg_replace('`[:# ]+`', '_', $key);
             $key = trim($key, '_');
 
