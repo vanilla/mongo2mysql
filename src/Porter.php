@@ -246,6 +246,10 @@ class Porter {
                 $key = 'group_privileges_members';
             } elseif (preg_match('`^group:cid:\d+:privileges`', $key, $m)) {
                 $key = 'group_privileges';
+            } elseif (preg_match('`^group:.*:members$`', $key, $m)) {
+                $key = 'group_members';
+            } elseif (preg_match('`^group:[^:]*$`', $key, $m)) {
+                $key = 'group';
             }
 
             list($first) = explode(':', $key);
