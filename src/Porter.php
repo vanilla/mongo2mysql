@@ -120,6 +120,7 @@ class Porter {
         $startTime = microtime(true);
 
         $total = $c->count();
+//        $data = $c->find(["_key" => ['$regex' => '^group:cid:\d+:privileges']]);
         $data = $c->find();
         if ($this->getLimit()) {
             $data->limit($this->getLimit());
@@ -237,8 +238,23 @@ class Porter {
 
     protected function getImportTablename($row, $tableName) {
         if (array_key_exists('_key', $row)) {
-            $key = preg_replace('`\d+`', '#', $row['_key']);
-            $key = preg_replace('`[:#]+`', '_', $key);
+            $key = $row['_key'];
+            // kludge for specific tables.
+            if (preg_match('`^tag:(.+):topics$`', $key, $m)) {
+                $key = 'tag_topics';
+            } elseif (preg_match('`^group:cid:\d+:privileges.*:members$`', $key, $m)) {
+                $key = 'group_privileges_members';
+            } elseif (preg_match('`^group:cid:\d+:privileges`', $key, $m)) {
+                $key = 'group_privileges';
+            }
+
+            list($first) = explode(':', $key);
+            if (in_array($first, ['settings', 'widgets'])) {
+                $key = $first;
+            }
+
+            $key = preg_replace('`\d+`', '#', $key);
+            $key = preg_replace('`[:# ]+`', '_', $key);
             $key = trim($key, '_');
 
             if (isset($this->allKeys[$key])) {
