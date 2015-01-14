@@ -39,6 +39,8 @@ class Porter {
 
     protected $allKeys = [];
 
+    protected $tableCounts = [];
+
     /// Methods ///
 
     public function __construct($config) {
@@ -113,6 +115,7 @@ class Porter {
      * Export a single mongo collection.
      *
      * @param MongoCollection $c The collection to export.
+     * @throws \Exception Throws an exception if something goes wrong during the insert.
      */
     public function exportCollection(MongoCollection $c) {
         $tableName = $c->getName();
@@ -150,6 +153,13 @@ class Porter {
                     $count++;
                     continue;
                 }
+
+                if (!isset($this->tableCounts[$exportTableName])) {
+                    $this->tableCounts[$exportTableName] = 1;
+                } else {
+                    $this->tableCounts[$exportTableName]++;
+                }
+                $row2['_num'] = $this->tableCounts[$exportTableName];
 
                 $this->ensureRowStructure($row2, $exportTableName);
                 $this->getDb()->insert($exportTableName, $row2, [Db::OPTION_REPLACE => true]);
@@ -193,6 +203,10 @@ class Porter {
     protected function exportCollectionArray($parentTableName, $parentID, $columnName, $arr) {
         $childTableName = $parentTableName.'__'.$columnName;
 
+        if (!isset($this->tableCounts[$childTableName])) {
+            $this->tableCounts[$childTableName] = 0;
+        }
+
         foreach ($arr as $i => $row) {
             if (is_array($row)) {
                 $row2 = array_merge(['_parentid' => $parentID, '_index' => $i], $this->flattenArray($arr));
@@ -200,6 +214,8 @@ class Porter {
             } else {
                 $row2 = ['_parentid' => $parentID, '_index' => $i, $columnName => $row];
             }
+
+            $row2['_num'] = ++$this->tableCounts[$childTableName];
 
             $this->ensureRowStructure($row2, $childTableName);
             $this->getDb()->insert($childTableName, $row2, [Db::OPTION_REPLACE => true]);
@@ -399,6 +415,7 @@ class Porter {
      * Export the mongoDb.
      */
     public function run() {
+        $this->tableCounts = [];
         $this->exportCollections();
     }
 

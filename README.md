@@ -33,6 +33,20 @@ To do this you can use the [mongorestore](//docs.mongodb.org/manual/tutorial/bac
 2. The directory of the bson files will become the name of the mongoDB so rename it if you want to.
 3. Call `mongorestore dirname/` to restore the files.
 
+## Tips
+
+* The `_id` column will be set to the primary key of the export table, but otherwise no indexes are added. Make sure to
+add your own indexes where needed after the conversion.
+
+* You might see some tables with a double underscore (`__`) in their names. These are child tables that have been created
+because a table had an array or giant object column. When you encounter one of these tables you'll see a primary key
+consisting of `_parentid` and `_index` columns. The `_index` column is automatically added from the array index or object key.
+
+* There is a `_num` column added to each export table. This number starts at one and increments up and can be used to
+help transition to integer primary keys instead of the hex IDs that mongoDB uses.
+
+* Since this is a command line application you should copy and paste a 
+
 
 ## Limitations
 
