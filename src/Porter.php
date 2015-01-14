@@ -30,7 +30,7 @@ class Porter {
     /**
      * @var int The maximum number of characters before a varchar is converted to text.
      */
-    public $maxVarcharLength = 500;
+    public $maxVarcharLength = 512;
 
     /**
      * @var MongoDB
@@ -96,6 +96,7 @@ class Porter {
                         $type1,
                         $type2
                     );
+                    $set = true;
                 }
             }
         }
@@ -333,6 +334,10 @@ class Porter {
                     $strlen = 100;
                 } elseif ($strlen < 255) {
                     $strlen = 255;
+                } elseif ($strlen <= $this->maxVarcharLength) {
+                    $strlen = $this->maxVarcharLength;
+                } else {
+                    $strlen = 512;
                 }
                 return "varchar($strlen)";
             }
