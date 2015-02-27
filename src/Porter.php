@@ -18,7 +18,7 @@ class Porter {
     protected $config = [];
 
     /**
-     * @var bool Should only data operations be made? (no database structural operations)
+     * @var bool Determine if only data operations be performed.
      */
     protected $dataOnly = false;
 
@@ -430,7 +430,7 @@ class Porter {
     }
 
     /**
-     * Get flag for determining whether or not no structural operations should be run during import
+     * Return flag for determining whether or not no structural operations should be run during import.
      *
      * @return bool
      */
@@ -446,7 +446,7 @@ class Porter {
     }
 
     /**
-     * Returns a list of tables to be skipped during the import
+     * Return a list of tables to be skipped during the import.
      *
      * @return array Tables to be skipped during import
      */
@@ -455,7 +455,7 @@ class Porter {
     }
 
     /**
-     * Set whether or not to run only data operations, avoiding structural changes in the destination
+     * Set whether or not to run only data operations, avoiding structural changes in the destination.
      *
      * @return bool Avoid performing structural operations on the destination?
      */
@@ -471,7 +471,7 @@ class Porter {
     }
 
     /**
-     * Set the list of tables to be skipped during the import
+     * Set the list of tables to be skipped during the import.
      *
      * @param array|string $skip Tables to skip during the import
      */
