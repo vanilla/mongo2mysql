@@ -168,12 +168,11 @@ class Porter {
                          * this table will be skipped and keep track of the missing table for future reference
                          */
                         echo "  Skipping _id {$row2['_id']}, destination not present (" . $exportTableName . ").\n";
-                        echo "  Skipping all future objects in " . $exportTableName . ".\n";
+                        echo "  All objects in " . $exportTableName . " will be skipped.\n";
                         $missingTables[] = $exportTableName;
                         continue;
                     } elseif (!in_array($exportTableName, $truncatedTables)) { // Has this table already been truncated?
                         // Truncate the table, note that it has been truncated to avoid redundant truncation
-                        echo "Truncating destination table: " . $exportTableName . "\n";
                         $this->getDb()->delete($exportTableName, array(), array(Db::OPTION_TRUNCATE));
                         $truncatedTables[] = $exportTableName;
                     }
