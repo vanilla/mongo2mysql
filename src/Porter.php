@@ -18,6 +18,11 @@ class Porter {
     protected $config = [];
 
     /**
+     * @var bool Determine if only data operations be performed.
+     */
+    protected $dataOnly = false;
+
+    /**
      * @var Db
      */
     protected $db;
@@ -38,6 +43,11 @@ class Porter {
     protected $mongo;
 
     protected $allKeys = [];
+
+    /**
+     * @var array A list of tables to be skipped during the import.
+     */
+    protected $skip = array();
 
     protected $tableCounts = [];
 
@@ -122,6 +132,8 @@ class Porter {
         $tableName = $c->getName();
         echo static::ts()." Exporting collection $tableName:\n";
         $startTime = microtime(true);
+        $truncatedTables = array();
+        $missingTables = array();
 
         $total = $c->count();
 //        $data = $c->find(["_key" => ['$regex' => '^group:cid:\d+:privileges']]);
@@ -139,6 +151,32 @@ class Porter {
                 $exportTableName = $this->getImportTablename($row, $tableName);
 
                 $row2 = $this->flattenArray($row);
+
+                // Should we be skipping imports to this destination table?
+                if (in_array($exportTableName,$this->skip)) {
+                    continue;
+                } elseif ($this->dataOnly) {
+                    // Has it already been established that the table doesn't exist on the destination?
+                    if (in_array($exportTableName, $missingTables)) {
+                        continue;
+                    }
+
+                    // Does the table exist on the destination?
+                    if ($this->getDb()->getTableDef($exportTableName) === null) {
+                        /**
+                         * Let the user know the table does not exist on the destination, establish future imports to
+                         * this table will be skipped and keep track of the missing table for future reference
+                         */
+                        echo "  Skipping _id {$row2['_id']}, destination not present (" . $exportTableName . ").\n";
+                        echo "  All objects in " . $exportTableName . " will be skipped.\n";
+                        $missingTables[] = $exportTableName;
+                        continue;
+                    } elseif (!in_array($exportTableName, $truncatedTables)) { // Has this table already been truncated?
+                        // Truncate the table, note that it has been truncated to avoid redundant truncation
+                        $this->getDb()->delete($exportTableName, array(), array(Db::OPTION_TRUNCATE));
+                        $truncatedTables[] = $exportTableName;
+                    }
+                }
 
                 // Check for array columns.
                 if (isset($row2['_arr'])) {
@@ -162,7 +200,10 @@ class Porter {
                 }
                 $row2['_num'] = $this->tableCounts[$exportTableName];
 
-                $this->ensureRowStructure($row2, $exportTableName);
+                // Should we be performing structure operations on the destination?
+                if (!$this->dataOnly) {
+                    $this->ensureRowStructure($row2, $exportTableName);
+                }
                 $this->getDb()->insert($exportTableName, $row2, [Db::OPTION_REPLACE => true]);
 
 
@@ -218,7 +259,10 @@ class Porter {
 
             $row2['_num'] = ++$this->tableCounts[$childTableName];
 
-            $this->ensureRowStructure($row2, $childTableName);
+            // Should we be performing structure operations on the destination?
+            if (!$this->dataOnly) {
+                $this->ensureRowStructure($row2, $childTableName);
+            }
             $this->getDb()->insert($childTableName, $row2, [Db::OPTION_REPLACE => true]);
         }
     }
@@ -385,6 +429,15 @@ class Porter {
     }
 
     /**
+     * Return flag for determining whether or not no structural operations should be run during import.
+     *
+     * @return bool
+     */
+    public function getDataOnly() {
+        return $this->dataOnly;
+    }
+
+    /**
      * @return int
      */
     public function getLimit() {
@@ -392,10 +445,43 @@ class Porter {
     }
 
     /**
+     * Return a list of tables to be skipped during the import.
+     *
+     * @return array Tables to be skipped during import
+     */
+    public function getSkip() {
+        return $this->skip;
+    }
+
+    /**
+     * Set whether or not to run only data operations, avoiding structural changes in the destination.
+     *
+     * @return bool Avoid performing structural operations on the destination?
+     */
+    public function setDataOnly($dataOnly) {
+        $this->dataOnly = $dataOnly;
+    }
+
+    /**
      * @param int $limit
      */
     public function setLimit($limit) {
         $this->limit = $limit;
+    }
+
+    /**
+     * Set the list of tables to be skipped during the import.
+     *
+     * @param array|string $skip Tables to skip during the import
+     */
+    public function setSkip($skip) {
+        if (is_string($skip)) {
+            $skip = str_getcsv($skip);
+        }
+
+        if (is_array($skip)) {
+            $this->skip = $skip;
+        }
     }
 
     /**

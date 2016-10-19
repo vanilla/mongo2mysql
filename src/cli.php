@@ -21,13 +21,17 @@ $cli->description('Exports a mongodb database to mysql.')
     ->opt('username:u', 'The mysql database username.', true)
     ->opt('password:p', 'The mysql database password.')
     ->opt('mdbname', 'The mongodb database name.', true)
-    ->opt('limit', 'Limit rows to this number. This is useful for debugging very large data sets.', false);
+    ->opt('limit', 'Limit rows to this number. This is useful for debugging very large data sets.', false)
+    ->opt('dataonly', 'Do not attempt to alter database structures.  Existing tables will be truncated and data inserted.')
+    ->opt('skip', 'Skip tables in this comma-separated value.');
 
 
 $args = $cli->parse($argv);
 
 $porter = new Porter($args->getOpts());
+$porter->setDataOnly($args->getOpt('dataonly', false));
 $porter->setLimit($args->getOpt('limit', 0));
+$porter->setSkip($args->getOpt('skip', array()));
 
 try {
     $porter->run();
