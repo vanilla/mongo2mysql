@@ -45,7 +45,7 @@ consisting of `_parentid` and `_index` columns. The `_index` column is automatic
 * There is a `_num` column added to each export table. This number starts at one and increments up and can be used to
 help transition to integer primary keys instead of the hex IDs that mongoDB uses.
 
-* Since this is a command line application you should copy and paste a 
+* Since this is a command line application you should copy and paste your export command into a text file or task so that you can reproduce the export exactly between test and final exports.
 
 
 ## Limitations
